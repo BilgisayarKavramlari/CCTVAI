@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cctvai"
+version = "0.1.0"
+description = "Behaviour aware CCTV analytics framework"
+readme = "README.md"
+authors = [{name = "CCTVAI"}]
+requires-python = ">=3.10"
+dependencies = [
+  "opencv-python",
+  "numpy",
+  "ultralytics",
+  "transformers",
+  "torch",
+  "torchvision",
+  "deepface",
+  "sqlalchemy",
+  "fastapi",
+  "uvicorn",
+  "typer",
+  "rich",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+web = ["uvicorn"]
+
+[project.scripts]
+cctvai = "cctvai.cli:main"
