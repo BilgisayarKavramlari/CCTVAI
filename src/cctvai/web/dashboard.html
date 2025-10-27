@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CCTVAI Dashboard</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        margin: 0;
+      }
+      header {
+        background: #1e293b;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .streams {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+      }
+      .stream-card {
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5);
+      }
+      .alerts, .stats {
+        background: #1e293b;
+        margin: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        max-height: 320px;
+        overflow-y: auto;
+      }
+      .alert {
+        border-left: 4px solid #f97316;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        animation: blink 1s linear infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.3;
+        }
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border-bottom: 1px solid #334155;
+        padding: 0.5rem;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>CCTVAI Control Room</h1>
+      <span id="clock"></span>
+    </header>
+    <main>
+      <section class="streams" id="streams"></section>
+      <section class="alerts">
+        <h2>Aktif Alarmlar</h2>
+        <div id="alerts"></div>
+      </section>
+      <section class="stats">
+        <h2>İstatistikler</h2>
+        <table id="stats">
+          <thead>
+            <tr>
+              <th>Kamera</th>
+              <th>Zaman</th>
+              <th>Kişi</th>
+              <th>Erkek</th>
+              <th>Kadın</th>
+              <th>Yaş Dağılımı</th>
+              <th>Duygular</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      async function fetchJSON(url) {
+        const response = await fetch(url);
+        return await response.json();
+      }
+
+      function updateClock() {
+        const el = document.getElementById("clock");
+        el.textContent = new Date().toLocaleString();
+      }
+
+      async function refreshStreams() {
+        const streams = await fetchJSON("/api/streams");
+        const container = document.getElementById("streams");
+        container.innerHTML = "";
+        streams.forEach((stream) => {
+          const div = document.createElement("div");
+          div.className = "stream-card";
+          div.innerHTML = `
+            <h3>${stream.name}</h3>
+            <p>Kaynak: ${stream.url}</p>
+            <p>Durum: ${stream.enabled ? "Aktif" : "Pasif"}</p>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      async function refreshAlerts() {
+        const alerts = await fetchJSON("/api/alerts");
+        const container = document.getElementById("alerts");
+        container.innerHTML = "";
+        alerts.forEach((alert) => {
+          const div = document.createElement("div");
+          div.className = "alert";
+          div.innerHTML = `
+            <strong>${alert.stream_name}</strong> - ${alert.event_type}
+            <span> (${(alert.confidence * 100).toFixed(1)}%)</span>
+            <div>${alert.message}</div>
+            <small>${new Date(alert.created_at).toLocaleTimeString()}</small>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      async function refreshStats() {
+        const stats = await fetchJSON("/api/stats");
+        const tbody = document.querySelector("#stats tbody");
+        tbody.innerHTML = "";
+        stats.forEach((stat) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${stat.stream_name}</td>
+            <td>${new Date(stat.captured_at).toLocaleString()}</td>
+            <td>${stat.person_count ?? "-"}</td>
+            <td>${stat.male_count ?? "-"}</td>
+            <td>${stat.female_count ?? "-"}</td>
+            <td>${stat.age_distribution ? JSON.stringify(stat.age_distribution) : "-"}</td>
+            <td>${stat.emotion_distribution ? JSON.stringify(stat.emotion_distribution) : "-"}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      setInterval(updateClock, 1000);
+      setInterval(refreshAlerts, 5000);
+      setInterval(refreshStats, 10000);
+      refreshStreams();
+      refreshAlerts();
+      refreshStats();
+      updateClock();
+    </script>
+  </body>
+</html>
